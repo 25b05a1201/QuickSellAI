@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuickSell AI</title>
+<style>
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f4fb;
+    color: #242344;
+}
+header {
+    background: #30266b;
+    color: white;
+    text-align: center;
+    padding: 25px 12px;
+}
+main { max-width: 700px; width: 92%; margin: 30px auto; }
+.card {
+    background: white;
+    padding: 24px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 18px #0000000c;
+}
+label { display: block; margin: 16px 0 7px; font-weight: bold; }
+input, textarea, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font: inherit;
+}
+button {
+    padding: 12px 18px;
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+#generate {
+    width: 100%;
+    margin-top: 20px;
+    background: #5b45dc;
+    color: white;
+}
+#generate:disabled { opacity: .6; }
+#copy { background: #e8e3ff; color: #30266b; }
+#result { white-space: pre-wrap; line-height: 1.7; }
+#status { color: #5540b7; }
+#error { color: #c21f30; }
+.hidden { display: none; }
+footer { text-align: center; padding: 20px; color: #666; }
+</style>
+</head>
+<body>
+<header>
+    <h1>✨ QuickSell AI</h1>
+    <p>Create product descriptions with your local AI model</p>
+</header>
+
+<main>
+<section class="card">
+    <h2>Generate a description</h2>
+    <form id="form">
+        <label for="product">Product name *</label>
+        <input id="product" maxlength="150"
+               placeholder="e.g. Cotton T-shirt" required>
+
+        <label for="features">Product features</label>
+        <textarea id="features" rows="4" maxlength="800"
+          placeholder="e.g. Soft cotton, breathable, blue and black"></textarea>
+
+        <label for="style">Writing style</label>
+        <select id="style">
+            <option>Professional</option>
+            <option selected>Friendly</option>
+            <option>Catchy</option>
+        </select>
+
+        <button id="generate" type="submit">Generate with AI ✨</button>
+    </form>
+    <p id="status" role="status"></p>
+    <p id="error" role="alert"></p>
+</section>
+
+<section id="output" class="card hidden">
+    <h2>Your generated description</h2>
+    <p id="result"></p>
+    <small id="model"></small>
+    <p><button id="copy" type="button">Copy description</button></p>
+    <p id="copyStatus" role="status"></p>
+</section>
+</main>
+
+<footer>QuickSell AI · Powered by Gemma through Ollama</footer>
+
+<script>
+const form = document.getElementById("form");
+const button = document.getElementById("generate");
+
+form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const status = document.getElementById("status");
+    const error = document.getElementById("error");
+    const output = document.getElementById("output");
+
+    status.textContent = "Generating with AI... Please wait.";
+    error.textContent = "";
+    output.classList.add("hidden");
+    button.disabled = true;
+
+    try {
+        const response = await fetch("/generate", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                product: document.getElementById("product").value,
+                features: document.getElementById("features").value,
+                style: document.getElementById("style").value
+            })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Request failed.");
+
+        document.getElementById("result").textContent = data.description;
+        document.getElementById("model").textContent = "AI model: " + data.model;
+        output.classList.remove("hidden");
+        status.textContent = "Description generated successfully!";
+    } catch (e) {
+        error.textContent = e.message;
+        status.textContent = "";
+    } finally {
+        button.disabled = false;
+    }
+});
+
+document.getElementById("copy").addEventListener("click", async () => {
+    try {
+        await navigator.clipboard.writeText(
+            document.getElementById("result").textContent
+        );
+        document.getElementById("copyStatus").textContent = "Copied!";
+    } catch {
+        document.getElementById("copyStatus").textContent =
+            "Copy failed. You can select and copy the text manually.";
+    }
+});
+</script>
+</body>
+</html>
